@@ -2,7 +2,7 @@
     <div class="w-screen" v-if="isAuthenticated">
       <Nav :isAuthenticated="isAuthenticated"></Nav>
       <div class="container mx-auto">
-        <Playlists @updateLoading="updateLoading"></Playlists>
+        <Playlists></Playlists>
       </div>
     </div>
     <div v-else class="mt-3 w-screen"> 
@@ -22,12 +22,13 @@ const isAuthenticated = ref(false);
 let checkAuth = async () =>{
   let url = `${import.meta.env.VITE_API_URL}/spotify/authenticated`
   console.log(url)
-  axios.get(url, {
+  await axios.get(url, {
     headers: {
       Authorization: 'Bearer ' + Cookies.get('jwt')
     }
   }).then(response => {
-    isAuthenticated.value = true;
+    isAuthenticated.value = response.data.authenticated;
+    console.log(isAuthenticated.value);
   }).catch(error =>{
     console.log(error);
     isAuthenticated.value = false;
