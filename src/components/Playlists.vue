@@ -140,11 +140,7 @@ async function getPlaylist(){
     showAllPlaylist.value = false;
     updateLoading(true, "Getting your playlists from Spotify.");
     try{
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/spotify/playlists?page=${page.value}`, {
-            headers: {
-            Authorization: 'Bearer ' + Cookies.get('jwt')
-            }
-        });
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/spotify/playlists?page=${page.value}`);
         playlists.value = response.data;
         maxPages.value = Math.ceil(playlists.value.total/10);
         showAllPlaylist.value = true;
@@ -199,11 +195,7 @@ async function viewPlaylist(playlistID){
         let explicitTracks = [];
         let cleanTracks = [];
         let tracks = [];
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/spotify/playlists/${playlistID}/tracks`, {
-            headers: {
-            Authorization: 'Bearer ' + Cookies.get('jwt')
-            }
-        });
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/spotify/playlists/${playlistID}/tracks`);
         tracks = response.data.items;
         singlePlaylistName = response.data.playlist.name;
         console.log(response.data);
@@ -217,11 +209,7 @@ async function viewPlaylist(playlistID){
             counter+=1;
             let trackID = tracks[i]['track']['uri'];
             if(tracks[i]['track']['explicit']){
-                const response = await axios.get(`${import.meta.env.VITE_API_URL}/spotify/tracks/${tracks[i]['track']['id']}/clean`, {
-                    headers: {
-                    Authorization: 'Bearer ' + Cookies.get('jwt')
-                    }
-                });
+                const response = await axios.get(`${import.meta.env.VITE_API_URL}/spotify/tracks/${tracks[i]['track']['id']}/clean`);
                 let data = response.data;
                 let explicit_obj = {
                     trackID,
@@ -310,11 +298,7 @@ async function createNewPlaylist(){
             'description': '',
             'ids': sendID
         }
-        const response = await axios.put(`${import.meta.env.VITE_API_URL}/spotify/playlists`, sendObj ,{
-            headers: {
-                Authorization: 'Bearer ' + Cookies.get('jwt')
-            }
-        });
+        const response = await axios.put(`${import.meta.env.VITE_API_URL}/spotify/playlists`, sendObj);
         viewPlaylist(response.data.playlistID);
     }
 }

@@ -22,11 +22,7 @@ const isAuthenticated = ref(false);
 let checkAuth = async () =>{
   let url = `${import.meta.env.VITE_API_URL}/spotify/authenticated`
   console.log(url)
-  await axios.get(url, {
-    headers: {
-      Authorization: 'Bearer ' + Cookies.get('jwt')
-    }
-  }).then(response => {
+  await axios.get(url).then(response => {
     isAuthenticated.value = response.data.authenticated;
     console.log(isAuthenticated.value);
   }).catch(error =>{
