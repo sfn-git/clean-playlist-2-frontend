@@ -116,6 +116,7 @@ import Cookies from 'js-cookie';
 import { ref, onMounted } from 'vue';
 import Loading from './Loading.vue';
 
+axios.defaults.withCredentials = true
 const showLoading = ref(false);
 let loadingMessage = ref({});
 let showAllPlaylist = ref(true);

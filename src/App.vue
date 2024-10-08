@@ -18,6 +18,8 @@ import Nav from './components/Nav.vue';
 import Index from './components/Index.vue';
 import { onBeforeMount, ref } from 'vue';
  
+axios.defaults.withCredentials = true
+
 const isAuthenticated = ref(false);
 let checkAuth = async () =>{
   let url = `${import.meta.env.VITE_API_URL}/spotify/authenticated`
