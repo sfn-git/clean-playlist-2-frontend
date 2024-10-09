@@ -1,7 +1,8 @@
 <template>
     <Loading v-if="showLoading" :message="loadingMessage"></Loading>
     <div id="all_playlists_view"  v-if="showAllPlaylist">
-        <p class="text-4xl mt-3 text-center md:text-left">Your Spotify Playlists</p>
+        <p v-if="!search" class="text-4xl mt-3 text-center md:text-left">Your Spotify Playlists</p>
+        <p v-else class="text-4xl mt-3 text-center md:text-left">Search Results for {{ searchInput }}</p>
         <!-- <p v-for="(item, index) in playlists.items" :key="index" v-show="playlists">{{ item.external_urls.spotify }}</p> -->
         <div class="join grid grid-cols-2 my-3">
             <button v-if="page == minPages" class="join-item btn btn-disabled">Previous page</button>
@@ -9,12 +10,26 @@
             <button v-if="page == maxPages" class="join-item btn btn-disabled">Next Page</button>
             <button v-else class="join-item btn btn-outline" @click="nextPage()">Next Page</button>
         </div>
+        <button v-if="search" class="btn btn-active btn-ghost md:w-2/12 my-2" @click="getPlaylist()">Clear Search Results</button>
         <p>Pages {{ page }}/{{ maxPages }} (Total of {{ playlists.total }} playlists)</p>
+        <label class="input input-bordered flex items-center gap-2 my-3">
+            <input type="text" class="grow" placeholder="Search Playlists" v-model="searchInput" @input="searchPlaylist"/>
+            <svg v-if="!search"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                class="h-4 w-4 opacity-70">
+                <path
+                fill-rule="evenodd"
+                d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
+                clip-rule="evenodd" />
+            </svg>
+        </label>
         <div class="my-3 bg-neutral rounded-lg" v-for="(item, index) in playlists.items" :key="index" v-show="playlists">
             <div class="flex flex-row">
                 <img
                 :src="getImgURL(item.images)"
-                alt="Album" class="w-2/12 h-1/4 md:w-[250px] md:h-[250px] h-rounded-lg"/>
+                alt="Album" class="w-2/12 h-1/4 my-auto md:w-[150px] md:h-[150px] h-rounded-lg"/>
                 <div class="flex flex-row ml-3 my-auto w-full">
                     <div class="w-1/2">
                         <a class="card-title text-sm sm:text-2xl" :href="item.external_urls.spotify" target="_blank">{{item.name}}</a>
@@ -22,7 +37,7 @@
                         <!-- <p class="text-base my-2">{{item.description}}</p> -->
                     </div>
                     
-                    <div class="card-actions my-auto ml-auto mr-auto">
+                    <div class="card-actions my-auto ml-auto mr-3">
                     <button class="btn md:btn-lg btn-primary" @click="viewPlaylist(item.id)">View Playlist</button>
                 </div>
             </div>
@@ -41,7 +56,8 @@
         <p class="text-4xl text-center md:text-left">{{singlePlaylistName}}</p>
         <p class="text-center md:text-left">There are {{explicitSongs}} explicit songs out of {{totalSongs}} in this playlist.</p>
         <div class="flex mt-3 mx-2 w-full">
-            <button class="btn btn-outline mr-1 w-1/4" @click="getPlaylist()">Back to Playlists</button>
+            <button v-if="search" class="btn btn-outline mr-1 w-1/4" @click="searchPlaylist()">Back to Search Results</button>
+            <button v-else class="btn btn-outline mr-1 w-1/4" @click="getPlaylist()">Back to Playlists</button>
             <button class="btn btn-success mr-1 text-sm w-1/4" v-if="explicitSongs>0" @click="createNewPlaylist()">Create Playlist</button>
             <a class="btn btn-success mr-1 text-sm w-1/4 text-ellipsis overflow-hidden" :href="singlePlaylistURL" target="_blank">Open in Spotify</a>
             <!-- <button class="btn btn-success mr-1 text-sm w-2/12 text-ellipsis overflow-hidden" @click="viewPlaylist()">Refresh</button> -->
@@ -112,7 +128,6 @@
 
 <script setup>
 import axios from 'axios';
-import Cookies from 'js-cookie';
 import { ref, onMounted } from 'vue';
 import Loading from './Loading.vue';
 
@@ -123,6 +138,7 @@ let showAllPlaylist = ref(true);
 let showSinglePlaylist = ref(false);
 let playlists = ref([]);
 let page = ref(1);
+let pageLimit = ref(1);
 let maxPages = ref(1);
 let minPages = ref(1);
 let singlePlaylistName = ref('');
@@ -136,16 +152,23 @@ let showModal = ref(false);
 let modalTracks = ref([]);
 let currentModalID = ref('');
 let modalSongName = ref('');
+let searchInput = ref('');
+let search = ref(false);
 
+// All playlist view
 async function getPlaylist(){
+    if(search.value){
+        page.value = 1;
+    }
     showAllPlaylist.value = false;
+    search.value = false;
+    searchInput.value = '';
     updateLoading(true, "Getting your playlists from Spotify.");
     try{
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/spotify/playlists?page=${page.value}`);
         playlists.value = response.data;
-        maxPages.value = Math.ceil(playlists.value.total/10);
-        showAllPlaylist.value = true;
-        showSinglePlaylist.value = false;
+        pageLimit.value = response.data.limit;
+        displayPlaylist()
     }catch(error){
         console.log(error);
     }
@@ -153,14 +176,30 @@ async function getPlaylist(){
     updateLoading();
 }
 
-function nextPage(){
+async function nextPage(){
     page.value++;
-    getPlaylist();
+    if(search.value){
+        showAllPlaylist.value = false;
+        updateLoading(true, "Loading search results")
+        searchPlaylist(true);
+        updateLoading()
+    }else{
+        getPlaylist();
+    }
+    
+    
 }
 
-function previousPage(){
+async function previousPage(){
     page.value--;
-    getPlaylist();
+    if(search.value){
+        showAllPlaylist.value = false;
+        updateLoading(true, "Loading search results")
+        searchPlaylist(true);
+        updateLoading()
+    }else{
+        getPlaylist();
+    }
 }
 
 function getImgURL(img){
@@ -172,6 +211,7 @@ function getImgURL(img){
     
 }
 
+// One playlist view
 function resetSinglePlaylist(){
 
     singlePlaylistName = ref('');
@@ -199,9 +239,7 @@ async function viewPlaylist(playlistID){
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/spotify/playlists/${playlistID}/tracks`);
         tracks = response.data.items;
         singlePlaylistName = response.data.playlist.name;
-        console.log(response.data);
         singlePlaylistURL.value = response.data.playlist.external_urls.spotify;
-        console.log(response.data);
         explicitSongs.value = 0;
         let counter = 0;
         totalSongs.value = response.data.playlist.tracks.total;
@@ -248,21 +286,21 @@ async function viewPlaylist(playlistID){
     }
     updateLoading();
     showSinglePlaylist.value = true;
-    console.log(newPlaylistSongs.value);
 }
 
 onMounted(async ()=>{
     getPlaylist();
 })
 
+// Loading toggle
 function updateLoading(status=false, message){
   showLoading.value = status;
   loadingMessage = message;
 }
 
+// Alternative songs view
 function showAltModal(id){
     let track = singlePlaylistExplicit.value.find(es => es.trackID === id);
-    console.log(track)
     modalSongName.value = track.track.track.name;
     modalTracks.value = track.search_results;
     showModal.value = !showModal.value;
@@ -275,11 +313,9 @@ function closeAltModal(){
 
 function setAlternativeTrack(id, newid){
     let newTrackIndex = newPlaylistSongs.value.findIndex(item => item.oldID === id);
-    console.log(newPlaylistSongs.value[newTrackIndex]);
     newPlaylistSongs.value[newTrackIndex]['newID'] = newid;
     let explicitTrackIndex = singlePlaylistExplicit.value.findIndex(i => i.trackID === id);
     singlePlaylistExplicit.value[explicitTrackIndex].alternative_set = true;
-    console.log(singlePlaylistExplicit.value[explicitTrackIndex]);
     closeAltModal();
 }
 
@@ -288,12 +324,10 @@ async function createNewPlaylist(){
         updateLoading(true, ' Please wait, creating your playlist.');
         let sendID = [];
         for(var i in newPlaylistSongs.value){
-            console.log(newPlaylistSongs.value[i]);
             if(newPlaylistSongs.value[i].newID != null){
                 sendID.push(newPlaylistSongs.value[i].newID);
             }
         }
-        console.log(sendID);
         let sendObj = {
             'playlist_name': `${singlePlaylistName} - Clean`,
             'description': '',
@@ -302,5 +336,28 @@ async function createNewPlaylist(){
         const response = await axios.put(`${import.meta.env.VITE_API_URL}/spotify/playlists`, sendObj);
         viewPlaylist(response.data.playlistID);
     }
+}
+
+// Playlist search
+async function searchPlaylist(fromPage){
+    if (!fromPage){
+        page.value=1;
+    }
+    search.value = true;
+    let url = `${import.meta.env.VITE_API_URL}/spotify/playlists/search?q=${searchInput.value}&p=${page.value}`;
+    let response = await axios.get(url);
+    try {
+        playlists.value = response.data.data.playlists;
+        pageLimit.value = response.data.data.playlists.limit;
+    } catch (error) {
+        console.log(error)
+    }
+    displayPlaylist();
+}
+
+function displayPlaylist(){
+    maxPages.value = Math.ceil(playlists.value.total/pageLimit.value);
+    showAllPlaylist.value = true;
+    showSinglePlaylist.value = false;
 }
 </script>
