@@ -168,10 +168,10 @@ async function getPlaylist(){
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/spotify/playlists?page=${page.value}`);
         playlists.value = response.data;
         pageLimit.value = response.data.limit;
-        displayPlaylist()
     }catch(error){
         console.log(error);
     }
+    displayPlaylist()
     window.scrollTo(0,0);
     updateLoading();
 }
