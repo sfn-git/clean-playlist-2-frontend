@@ -12,7 +12,6 @@
 
 <script setup>
 import axios from 'axios'
-import Cookies from 'js-cookie'
 import Playlists from './components/Playlists.vue'
 import Nav from './components/Nav.vue';
 import Index from './components/Index.vue';
@@ -25,8 +24,7 @@ let checkAuth = async () =>{
   let url = `${import.meta.env.VITE_API_URL}/spotify/authenticated`
   console.log(url)
   await axios.get(url).then(response => {
-    isAuthenticated.value = response.data.authenticated;
-    console.log(isAuthenticated.value);
+    isAuthenticated.value = response.data.authenticated;    
   }).catch(error =>{
     console.log(error);
     isAuthenticated.value = false;
