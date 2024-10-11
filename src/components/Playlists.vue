@@ -343,16 +343,19 @@ async function searchPlaylist(fromPage){
     if (!fromPage){
         page.value=1;
     }
-    search.value = true;
-    let url = `${import.meta.env.VITE_API_URL}/spotify/playlists/search?q=${searchInput.value}&p=${page.value}`;
-    let response = await axios.get(url);
-    try {
-        playlists.value = response.data.data.playlists;
-        pageLimit.value = response.data.data.playlists.limit;
-    } catch (error) {
-        console.log(error)
+    if(searchInput.value.length != 0){
+        search.value = true;
+        let url = `${import.meta.env.VITE_API_URL}/spotify/playlists/search?q=${searchInput.value}&p=${page.value}`;
+        let response = await axios.get(url);
+        try {
+            playlists.value = response.data.data.playlists;
+            pageLimit.value = response.data.data.playlists.limit;
+        } catch (error) {
+            console.log(error)
+        }
+        displayPlaylist();
     }
-    displayPlaylist();
+    
 }
 
 function displayPlaylist(){
