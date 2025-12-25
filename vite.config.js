@@ -15,12 +15,13 @@ export default defineConfig({
   },
   preview: {
     port: 8081,
-    origin: "http://0.0.0.0:8081",
+    origin: "http://0.0.0.0:8081"
   },
   server: {
     port: 8081,
     strictPort: true,
     host: true,
     origin: "http://0.0.0.0:8081",
+    allowedHosts: true
    },
 })
